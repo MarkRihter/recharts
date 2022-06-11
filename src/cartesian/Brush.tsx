@@ -276,12 +276,14 @@ export class Brush extends PureComponent<Props, State> {
   };
 
   attachDragEndListener() {
+    window.addEventListener('pointermove', this.handleDrag, true);
     window.addEventListener('mouseup', this.handleDragEnd, true);
     window.addEventListener('touchend', this.handleDragEnd, true);
     window.addEventListener('mousemove', this.handleDrag, true);
   }
 
   detachDragEndListener() {
+    window.removeEventListener('pointermove', this.handleDrag, true);
     window.removeEventListener('mouseup', this.handleDragEnd, true);
     window.removeEventListener('touchend', this.handleDragEnd, true);
     window.removeEventListener('mousemove', this.handleDrag, true);
