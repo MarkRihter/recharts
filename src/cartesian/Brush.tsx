@@ -453,8 +453,8 @@ export class Brush extends PureComponent<Props, State> {
         className="recharts-brush-traveller"
         onMouseEnter={this.handleEnterSlideOrTraveller}
         onMouseLeave={this.handleLeaveSlideOrTraveller}
-        onMouseDown={this.travellerDragStartHandlers[id]}
-        onTouchStart={this.travellerDragStartHandlers[id]}
+        onMouseDown={({ nativeEvent }) => this.travellerDragStartHandlers[id](nativeEvent)}
+        onTouchStart={({ nativeEvent }) => this.travellerDragStartHandlers[id](nativeEvent)}
         style={{ cursor: 'col-resize' }}
       >
         {Brush.renderTraveller(traveller, travellerProps)}
@@ -472,8 +472,8 @@ export class Brush extends PureComponent<Props, State> {
         className="recharts-brush-slide"
         onMouseEnter={this.handleEnterSlideOrTraveller}
         onMouseLeave={this.handleLeaveSlideOrTraveller}
-        onMouseDown={this.handleSlideDragStart}
-        onTouchStart={this.handleSlideDragStart}
+        onMouseDown={({ nativeEvent }) => this.handleSlideDragStart(nativeEvent)}
+        onTouchStart={({ nativeEvent }) => this.handleSlideDragStart(nativeEvent)}
         style={{ cursor: 'move' }}
         stroke="none"
         fill={stroke}
@@ -544,7 +544,7 @@ export class Brush extends PureComponent<Props, State> {
       <Layer
         className={layerClass}
         onMouseLeave={this.handleLeaveWrapper}
-        onTouchMove={this.handleTouchMove}
+        onTouchMove={({ nativeEvent }) => this.handleTouchMove(nativeEvent)}
         style={style}
       >
         {this.renderBackground()}

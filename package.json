@@ -1,6 +1,7 @@
 {
   "name": "@markrihter/recharts",
   "version": "2.4.3",
+  "private": false,
   "description": "React charts fork",
   "main": "lib/index",
   "module": "es6/index",
@@ -52,8 +53,10 @@
     "url": "https://github.com/MarkRihter/recharts"
   },
   "author": {
-    "name": "Mark Rikhter"
+    "name": "Mark Rikhter",
+    "email": "markrihter98@gmail.com"
   },
+  "publishConfig": "https://npm.pkg.github.com",
   "bugs": {
     "url": "https://github.com/recharts/recharts/issues"
   },
