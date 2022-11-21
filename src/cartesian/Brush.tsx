@@ -27,6 +27,7 @@ interface InternalBrushProps {
   width?: number;
   data?: any[];
   updateId?: string | number;
+  container?: HTMLDivElement;
 }
 
 interface BrushProps extends InternalBrushProps {
@@ -210,15 +211,11 @@ export class Brush extends PureComponent<Props, State> {
     return null;
   }
 
-  componentDidMount() {
-    this.context.on(WHEEL_EVENT, this.handleReceiveWheelEvent);
+  componentDidUpdate(prevProps: Readonly<Props>) {
+    if (this.props.container && !prevProps.container) {
+      this.props.container.addEventListener('wheel', this.handleReceiveWheelEvent, { passive: false });
+    }
   }
-
-  handleReceiveWheelEvent = (e: React.WheelEvent<HTMLDivElement>) => {
-    const delta = e.deltaY > 0 ? 20 : -20;
-
-    this.onSliderPositionChange(delta, e.pageX);
-  };
 
   componentWillUnmount() {
     if (this.leaveTimer) {
@@ -228,8 +225,15 @@ export class Brush extends PureComponent<Props, State> {
 
     this.detachDragEndListener();
 
-    this.context.removeListener(WHEEL_EVENT, this.handleReceiveWheelEvent);
+    this.props.container.removeEventListener('wheel', this.handleReceiveWheelEvent);
   }
+
+  handleReceiveWheelEvent = (e?: WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 20 : -20;
+
+    this.onSliderPositionChange(delta, e.pageX);
+  };
 
   static getIndexInRange(range: number[], x: number) {
     const len = range.length;
@@ -578,5 +582,3 @@ export class Brush extends PureComponent<Props, State> {
     );
   }
 }
-
-Brush.contextType = ChartContext;

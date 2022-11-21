@@ -1,4 +1,3 @@
-import { WheelEvent } from 'react';
 import EventEmitter from 'eventemitter3';
 
 type CategoricalChartState = import('../chart/generateCategoricalChart').CategoricalChartState;
@@ -17,10 +16,7 @@ if (eventCenter.setMaxListeners) {
 
 export { eventCenter };
 export const SYNC_EVENT = 'recharts.syncMouseEvents';
-export const WHEEL_EVENT = 'wheel';
 
 interface EventTypes {
   [SYNC_EVENT](syncId: number | string, uniqueChartId: string, data: CategoricalChartState): void;
-
-  [WHEEL_EVENT](e: WheelEvent<HTMLDivElement>): void;
 }

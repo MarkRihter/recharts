@@ -54,7 +54,7 @@ import {
 import { detectReferenceElementsDomain } from '../util/DetectReferenceElementsDomain';
 import { inRangeOfSector, polarToCartesian } from '../util/PolarUtils';
 import { shallowEqual } from '../util/ShallowEqual';
-import { eventCenter, SYNC_EVENT, WHEEL_EVENT } from '../util/Events';
+import { eventCenter, SYNC_EVENT } from '../util/Events';
 import {
   LayoutType,
   StackOffsetType,
@@ -813,8 +813,6 @@ export interface CategoricalChartProps {
   desc?: string;
 }
 
-export const ChartContext = React.createContext<EventEmitter>(new EventEmitter());
-
 export const generateCategoricalChart = ({
   chartName,
   GraphicalChild,
@@ -1011,7 +1009,7 @@ export const generateCategoricalChart = ({
       ...defaultProps,
     };
 
-    container?: any;
+    container?: HTMLDivElement;
 
     chartEventEmitter: EventEmitter;
 
@@ -1916,6 +1914,7 @@ export const generateCategoricalChart = ({
         startIndex: dataStartIndex,
         endIndex: dataEndIndex,
         updateId: `brush-${updateId}`,
+        container: this.container,
       });
     };
 
@@ -2198,6 +2197,7 @@ export const generateCategoricalChart = ({
       }
 
       const events = this.parseEventsOfWrapper();
+
       return (
         <ChartContext.Provider value={this.chartEventEmitter}>
           <div
