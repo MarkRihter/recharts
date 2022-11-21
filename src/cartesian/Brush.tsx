@@ -12,6 +12,7 @@ import { isNumber } from '../util/DataUtils';
 import { generatePrefixStyle } from '../util/CssPrefixUtils';
 import { Padding, DataKey } from '../util/types';
 import { filterProps } from '../util/ReactUtils';
+import { eventCenter, WHEEL_EVENT } from '../util/Events';
 
 type BrushTravellerType = ReactElement<SVGElement> | ((props: any) => ReactElement<SVGElement>);
 interface BrushStartEndIndex {
@@ -208,6 +209,16 @@ export class Brush extends PureComponent<Props, State> {
     return null;
   }
 
+  componentDidMount() {
+    eventCenter.on(WHEEL_EVENT, this.handleReceiveWheelEvent);
+  }
+
+  handleReceiveWheelEvent = (e: React.WheelEvent<HTMLDivElement>) => {
+    const delta = e.deltaY > 0 ? 20 : -20;
+
+    this.onSliderPositionChange(delta, e.pageX);
+  };
+
   componentWillUnmount() {
     if (this.leaveTimer) {
       clearTimeout(this.leaveTimer);
@@ -215,6 +226,8 @@ export class Brush extends PureComponent<Props, State> {
     }
 
     this.detachDragEndListener();
+
+    eventCenter.removeListener(WHEEL_EVENT, this.handleReceiveWheelEvent);
   }
 
   static getIndexInRange(range: number[], x: number) {
@@ -328,9 +341,16 @@ export class Brush extends PureComponent<Props, State> {
   };
 
   handleSlideDrag(e: React.Touch | React.MouseEvent<SVGGElement> | MouseEvent) {
-    const { slideMoveStartX, startX, endX } = this.state;
+    const { slideMoveStartX } = this.state;
+    const delta = e.pageX - slideMoveStartX;
+
+    this.onSliderPositionChange(delta, e.pageX);
+  }
+
+  onSliderPositionChange(sliderDelta: number, slideMoveStartX: number) {
+    let delta = sliderDelta;
+    const { startX, endX } = this.state;
     const { x, width, travellerWidth, startIndex, endIndex, onChange } = this.props;
-    let delta = e.pageX - slideMoveStartX;
 
     if (delta > 0) {
       delta = Math.min(delta, x + width - travellerWidth - endX, x + width - travellerWidth - startX);
@@ -349,7 +369,7 @@ export class Brush extends PureComponent<Props, State> {
     this.setState({
       startX: startX + delta,
       endX: endX + delta,
-      slideMoveStartX: e.pageX,
+      slideMoveStartX,
     });
   }
 

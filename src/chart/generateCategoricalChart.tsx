@@ -53,7 +53,7 @@ import {
 import { detectReferenceElementsDomain } from '../util/DetectReferenceElementsDomain';
 import { inRangeOfSector, polarToCartesian } from '../util/PolarUtils';
 import { shallowEqual } from '../util/ShallowEqual';
-import { eventCenter, SYNC_EVENT } from '../util/Events';
+import { eventCenter, SYNC_EVENT, WHEEL_EVENT } from '../util/Events';
 import {
   LayoutType,
   StackOffsetType,
@@ -2194,6 +2194,7 @@ export const generateCategoricalChart = ({
       const events = this.parseEventsOfWrapper();
       return (
         <div
+          onWheel={e => eventCenter.emit(WHEEL_EVENT, e)}
           className={classNames('recharts-wrapper', className)}
           style={{ position: 'relative', cursor: 'default', width, height, ...style }}
           {...events}
