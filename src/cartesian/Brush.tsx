@@ -225,7 +225,7 @@ export class Brush extends PureComponent<Props, State> {
 
     this.detachDragEndListener();
 
-    this.props.container.removeEventListener('wheel', this.handleReceiveWheelEvent);
+    if (this.props.container) this.props.container.removeEventListener('wheel', this.handleReceiveWheelEvent);
   }
 
   handleReceiveWheelEvent = (e?: WheelEvent) => {
