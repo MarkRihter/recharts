@@ -1,6 +1,7 @@
 import React, { Component, cloneElement, isValidElement, createElement } from 'react';
 import classNames from 'classnames';
 import _, { isArray, isBoolean, isNil } from 'lodash';
+import EventEmitter from 'eventemitter3';
 import { getTicks } from '../cartesian/getTicks';
 import { Surface } from '../container/Surface';
 import { Layer } from '../container/Layer';
@@ -812,6 +813,8 @@ export interface CategoricalChartProps {
   desc?: string;
 }
 
+export const ChartContext = React.createContext<EventEmitter>(new EventEmitter());
+
 export const generateCategoricalChart = ({
   chartName,
   GraphicalChild,
@@ -1010,6 +1013,8 @@ export const generateCategoricalChart = ({
 
     container?: any;
 
+    chartEventEmitter: EventEmitter;
+
     constructor(props: CategoricalChartProps) {
       super(props);
 
@@ -1021,6 +1026,7 @@ export const generateCategoricalChart = ({
       }
 
       this.state = {};
+      this.chartEventEmitter = new EventEmitter();
     }
 
     componentDidMount() {
@@ -2193,23 +2199,25 @@ export const generateCategoricalChart = ({
 
       const events = this.parseEventsOfWrapper();
       return (
-        <div
-          onWheel={e => eventCenter.emit(WHEEL_EVENT, e)}
-          className={classNames('recharts-wrapper', className)}
-          style={{ position: 'relative', cursor: 'default', width, height, ...style }}
-          {...events}
-          ref={node => {
-            this.container = node;
-          }}
-          role="region"
-        >
-          <Surface {...attrs} width={width} height={height} title={title} desc={desc}>
-            {this.renderClipPath()}
-            {renderByOrder(children, map)}
-          </Surface>
-          {this.renderLegend()}
-          {this.renderTooltip()}
-        </div>
+        <ChartContext.Provider value={this.chartEventEmitter}>
+          <div
+            onWheel={e => this.chartEventEmitter.emit(WHEEL_EVENT, e)}
+            className={classNames('recharts-wrapper', className)}
+            style={{ position: 'relative', cursor: 'default', width, height, ...style }}
+            {...events}
+            ref={node => {
+              this.container = node;
+            }}
+            role="region"
+          >
+            <Surface {...attrs} width={width} height={height}>
+              {this.renderClipPath()}
+              {renderByOrder(children, map)}
+            </Surface>
+            {this.renderLegend()}
+            {this.renderTooltip()}
+          </div>
+        </ChartContext.Provider>
       );
     }
   };

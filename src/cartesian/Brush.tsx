@@ -13,6 +13,7 @@ import { generatePrefixStyle } from '../util/CssPrefixUtils';
 import { Padding, DataKey } from '../util/types';
 import { filterProps } from '../util/ReactUtils';
 import { eventCenter, WHEEL_EVENT } from '../util/Events';
+import { ChartContext } from '../chart/generateCategoricalChart';
 
 type BrushTravellerType = ReactElement<SVGElement> | ((props: any) => ReactElement<SVGElement>);
 interface BrushStartEndIndex {
@@ -210,7 +211,7 @@ export class Brush extends PureComponent<Props, State> {
   }
 
   componentDidMount() {
-    eventCenter.on(WHEEL_EVENT, this.handleReceiveWheelEvent);
+    this.context.on(WHEEL_EVENT, this.handleReceiveWheelEvent);
   }
 
   handleReceiveWheelEvent = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -227,7 +228,7 @@ export class Brush extends PureComponent<Props, State> {
 
     this.detachDragEndListener();
 
-    eventCenter.removeListener(WHEEL_EVENT, this.handleReceiveWheelEvent);
+    this.context.removeListener(WHEEL_EVENT, this.handleReceiveWheelEvent);
   }
 
   static getIndexInRange(range: number[], x: number) {
@@ -577,3 +578,5 @@ export class Brush extends PureComponent<Props, State> {
     );
   }
 }
+
+Brush.contextType = ChartContext;
