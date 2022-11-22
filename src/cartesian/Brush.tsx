@@ -229,8 +229,9 @@ export class Brush extends PureComponent<Props, State> {
   }
 
   handleReceiveWheelEvent = (e?: WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 20 : -20;
+    const delta = (e.shiftKey ? e.deltaY : e.deltaX) / 10;
+
+    if (delta !== 0) e.preventDefault();
 
     this.onSliderPositionChange(delta, e.pageX);
   };
