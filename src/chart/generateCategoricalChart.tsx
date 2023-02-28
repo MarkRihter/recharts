@@ -2208,7 +2208,7 @@ export const generateCategoricalChart = ({
           }}
           role="region"
         >
-          <Surface {...attrs} width={width} height={height}>
+          <Surface {...attrs} width={width} height={height} title={title} desc={desc}>
             {this.renderClipPath()}
             {renderByOrder(children, map)}
           </Surface>
