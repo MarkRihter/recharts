@@ -56,7 +56,10 @@
     "name": "Mark Rikhter",
     "email": "markrihter98@gmail.com"
   },
-  "publishConfig": "https://npm.pkg.github.com",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
   "bugs": {
     "url": "https://github.com/recharts/recharts/issues"
   },
