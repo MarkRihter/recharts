@@ -12,8 +12,6 @@ import { isNumber } from '../util/DataUtils';
 import { generatePrefixStyle } from '../util/CssPrefixUtils';
 import { Padding, DataKey } from '../util/types';
 import { filterProps } from '../util/ReactUtils';
-import { eventCenter, WHEEL_EVENT } from '../util/Events';
-import { ChartContext } from '../chart/generateCategoricalChart';
 
 type BrushTravellerType = ReactElement<SVGElement> | ((props: any) => ReactElement<SVGElement>);
 interface BrushStartEndIndex {
@@ -479,8 +477,8 @@ export class Brush extends PureComponent<Props, State> {
         className="recharts-brush-traveller"
         onMouseEnter={this.handleEnterSlideOrTraveller}
         onMouseLeave={this.handleLeaveSlideOrTraveller}
-        onMouseDown={({ nativeEvent }) => this.travellerDragStartHandlers[id](nativeEvent)}
-        onTouchStart={({ nativeEvent }) => this.travellerDragStartHandlers[id](nativeEvent)}
+        onMouseDown={nativeEvent => this.travellerDragStartHandlers[id](nativeEvent)}
+        onTouchStart={nativeEvent => this.travellerDragStartHandlers[id](nativeEvent)}
         style={{ cursor: 'col-resize' }}
       >
         {Brush.renderTraveller(traveller, travellerProps)}
@@ -498,8 +496,8 @@ export class Brush extends PureComponent<Props, State> {
         className="recharts-brush-slide"
         onMouseEnter={this.handleEnterSlideOrTraveller}
         onMouseLeave={this.handleLeaveSlideOrTraveller}
-        onMouseDown={({ nativeEvent }) => this.handleSlideDragStart(nativeEvent)}
-        onTouchStart={({ nativeEvent }) => this.handleSlideDragStart(nativeEvent)}
+        onMouseDown={nativeEvent => this.handleSlideDragStart(nativeEvent)}
+        onTouchStart={nativeEvent => this.handleSlideDragStart(nativeEvent)}
         style={{ cursor: 'move' }}
         stroke="none"
         fill={stroke}
@@ -570,7 +568,7 @@ export class Brush extends PureComponent<Props, State> {
       <Layer
         className={layerClass}
         onMouseLeave={this.handleLeaveWrapper}
-        onTouchMove={({ nativeEvent }) => this.handleTouchMove(nativeEvent)}
+        onTouchMove={nativeEvent => this.handleTouchMove(nativeEvent)}
         style={style}
       >
         {this.renderBackground()}

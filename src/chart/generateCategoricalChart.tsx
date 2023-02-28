@@ -2199,25 +2199,22 @@ export const generateCategoricalChart = ({
       const events = this.parseEventsOfWrapper();
 
       return (
-        <ChartContext.Provider value={this.chartEventEmitter}>
-          <div
-            onWheel={e => this.chartEventEmitter.emit(WHEEL_EVENT, e)}
-            className={classNames('recharts-wrapper', className)}
-            style={{ position: 'relative', cursor: 'default', width, height, ...style }}
-            {...events}
-            ref={node => {
-              this.container = node;
-            }}
-            role="region"
-          >
-            <Surface {...attrs} width={width} height={height}>
-              {this.renderClipPath()}
-              {renderByOrder(children, map)}
-            </Surface>
-            {this.renderLegend()}
-            {this.renderTooltip()}
-          </div>
-        </ChartContext.Provider>
+        <div
+          className={classNames('recharts-wrapper', className)}
+          style={{ position: 'relative', cursor: 'default', width, height, ...style }}
+          {...events}
+          ref={node => {
+            this.container = node;
+          }}
+          role="region"
+        >
+          <Surface {...attrs} width={width} height={height}>
+            {this.renderClipPath()}
+            {renderByOrder(children, map)}
+          </Surface>
+          {this.renderLegend()}
+          {this.renderTooltip()}
+        </div>
       );
     }
   };
