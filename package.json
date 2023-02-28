@@ -1,6 +1,6 @@
 {
   "name": "@markrihter/recharts",
-  "version": "2.4.3",
+  "version": "2.4.3-1",
   "private": false,
   "description": "React charts fork",
   "main": "lib/index",
