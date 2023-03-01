@@ -29,6 +29,7 @@ export type Unit = string | number;
 export type TickFormatter = (value: any, index: number) => string;
 
 export interface CartesianAxisProps {
+  bandSize?: number;
   className?: string;
   x?: number;
   y?: number;
@@ -282,6 +283,8 @@ export class CartesianAxis extends Component<Props, IState> {
         ...axisProps,
         stroke: 'none',
         fill: stroke,
+        bandSize: this.props.bandSize,
+        interval: this.props.interval,
         ...customTickProps,
         ...tickCoord,
         index: i,
