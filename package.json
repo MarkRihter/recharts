@@ -1,6 +1,6 @@
 {
   "name": "@markrihter/recharts",
-  "version": "2.4.4",
+  "version": "2.4.5",
   "private": false,
   "description": "React charts fork",
   "main": "lib/index",
@@ -28,7 +28,7 @@
     "build-es6": "rimraf es6 && cross-env NODE_ENV=es6 babel ./src -d es6 --extensions '.js,.ts,.tsx'",
     "build-umd": "rimraf umd && cross-env NODE_ENV=production webpack --entry ./src/index.ts -o umd",
     "build-types": "rimraf types && npm run tsc",
-    "demo": "webpack serve --config demo/webpack.config.js --port 3000 --host 127.0.0.1 --progress --profile --static demo/",
+    "demo": "webpack serve --config demo/webpack.config.js --port 3001 --host 127.0.0.1 --progress --profile --static demo/",
     "test": "cross-env NODE_ENV=test jest",
     "lint": "eslint \"./src/**/*.{ts,tsx}\"",
     "autofix": "eslint \"./src/**/*.{ts,tsx}\" --fix",
