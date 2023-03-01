@@ -1,6 +1,6 @@
 {
   "name": "@markrihter/recharts",
-  "version": "2.4.3-1",
+  "version": "2.4.4",
   "private": false,
   "description": "React charts fork",
   "main": "lib/index",
@@ -22,6 +22,7 @@
     "react-component"
   ],
   "scripts": {
+    "prepare": "husky install",
     "build": "npm run build-types && npm run build-cjs && npm run build-es6 && npm run build-umd",
     "build-cjs": "rimraf lib && cross-env NODE_ENV=commonjs babel ./src -d lib --extensions '.js,.ts,.tsx'",
     "build-es6": "rimraf es6 && cross-env NODE_ENV=es6 babel ./src -d es6 --extensions '.js,.ts,.tsx'",
@@ -30,7 +31,6 @@
     "demo": "webpack serve --config demo/webpack.config.js --port 3000 --host 127.0.0.1 --progress --profile --static demo/",
     "test": "cross-env NODE_ENV=test jest",
     "lint": "eslint \"./src/**/*.{ts,tsx}\"",
-    "lint-storybook": "eslint \"./storybook/**/*.{ts,tsx}\"",
     "autofix": "eslint \"./src/**/*.{ts,tsx}\" --fix",
     "analyse": "cross-env NODE_ENV=analyse webpack ./src/index.ts -o umd/Recharts.js",
     "tsc": "tsc"
