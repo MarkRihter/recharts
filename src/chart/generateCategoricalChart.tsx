@@ -5,6 +5,7 @@ import range from 'lodash/range';
 import get from 'lodash/get';
 import sortBy from 'lodash/sortBy';
 import throttle from 'lodash/throttle';
+import EventEmitter from 'eventemitter3';
 
 import clsx from 'clsx';
 // eslint-disable-next-line no-restricted-imports
@@ -1120,7 +1121,9 @@ export const generateCategoricalChart = ({
       ...defaultProps,
     };
 
-    container?: HTMLElement;
+    container?: HTMLDivElement;
+
+    chartEventEmitter: EventEmitter;
 
     constructor(props: CategoricalChartProps) {
       super(props);
@@ -1131,6 +1134,7 @@ export const generateCategoricalChart = ({
       this.throttleTriggeredAfterMouseMove = throttle(this.triggeredAfterMouseMove, props.throttleDelay ?? 1000 / 60);
 
       this.state = {};
+      this.chartEventEmitter = new EventEmitter();
     }
 
     componentDidMount() {
@@ -1932,7 +1936,7 @@ export const generateCategoricalChart = ({
     };
 
     renderBrush = (element: React.ReactElement) => {
-      const { margin, data } = this.props;
+      const { margin, data, layout } = this.props;
       const { offset, dataStartIndex, dataEndIndex, updateId } = this.state;
 
       // TODO: update brush when children update
@@ -1948,6 +1952,8 @@ export const generateCategoricalChart = ({
         startIndex: dataStartIndex,
         endIndex: dataEndIndex,
         updateId: `brush-${updateId}`,
+        container: this.container,
+        layout,
       });
     };
 
@@ -2330,6 +2336,7 @@ export const generateCategoricalChart = ({
       }
 
       const events = this.parseEventsOfWrapper();
+
       return (
         <ChartLayoutContextProvider
           state={this.state}

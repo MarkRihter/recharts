@@ -117,6 +117,9 @@ export class Tooltip<TValue extends ValueType, TName extends NameType> extends P
     } = this.props;
     let finalPayload: Payload<TValue, TName>[] = payload ?? [];
 
+    console.log('from recharts');
+    console.log(this.props.active);
+
     if (filterNull && finalPayload.length) {
       finalPayload = getUniqPayload(
         payload.filter(entry => entry.value != null && (entry.hide !== true || this.props.includeHidden)),

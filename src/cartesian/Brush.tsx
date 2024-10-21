@@ -26,6 +26,7 @@ interface InternalBrushProps {
   width?: number;
   data?: any[];
   updateId?: string | number;
+  container?: HTMLDivElement;
 }
 
 interface BrushProps extends InternalBrushProps {
@@ -214,6 +215,12 @@ export class Brush extends PureComponent<Props, State> {
     return null;
   }
 
+  componentDidUpdate(prevProps: Readonly<Props>) {
+    if (this.props.container && !prevProps.container) {
+      this.props.container.addEventListener('wheel', this.handleReceiveWheelEvent, { passive: false });
+    }
+  }
+
   componentWillUnmount() {
     if (this.leaveTimer) {
       clearTimeout(this.leaveTimer);
@@ -221,7 +228,17 @@ export class Brush extends PureComponent<Props, State> {
     }
 
     this.detachDragEndListener();
+
+    if (this.props.container) this.props.container.removeEventListener('wheel', this.handleReceiveWheelEvent);
   }
+
+  handleReceiveWheelEvent = (e?: WheelEvent) => {
+    const delta = (e.shiftKey ? e.deltaY : e.deltaX) / 10;
+
+    if (delta !== 0) e.preventDefault();
+
+    this.onSliderPositionChange(delta, e.pageX);
+  };
 
   static getIndexInRange(valueRange: number[], x: number) {
     const len = valueRange.length;
@@ -282,12 +299,14 @@ export class Brush extends PureComponent<Props, State> {
   };
 
   attachDragEndListener() {
+    window.addEventListener('pointermove', this.handleDrag, true);
     window.addEventListener('mouseup', this.handleDragEnd, true);
     window.addEventListener('touchend', this.handleDragEnd, true);
     window.addEventListener('mousemove', this.handleDrag, true);
   }
 
   detachDragEndListener() {
+    window.removeEventListener('pointermove', this.handleDrag, true);
     window.removeEventListener('mouseup', this.handleDragEnd, true);
     window.removeEventListener('touchend', this.handleDragEnd, true);
     window.removeEventListener('mousemove', this.handleDrag, true);
@@ -341,9 +360,16 @@ export class Brush extends PureComponent<Props, State> {
   };
 
   handleSlideDrag(e: React.Touch | React.MouseEvent<SVGGElement> | MouseEvent) {
-    const { slideMoveStartX, startX, endX } = this.state;
+    const { slideMoveStartX } = this.state;
+    const delta = e.pageX - slideMoveStartX;
+
+    this.onSliderPositionChange(delta, e.pageX);
+  }
+
+  onSliderPositionChange(sliderDelta: number, slideMoveStartX: number) {
+    let delta = sliderDelta;
+    const { startX, endX } = this.state;
     const { x, width, travellerWidth, startIndex, endIndex, onChange } = this.props;
-    let delta = e.pageX - slideMoveStartX;
 
     if (delta > 0) {
       delta = Math.min(delta, x + width - travellerWidth - endX, x + width - travellerWidth - startX);
@@ -362,7 +388,7 @@ export class Brush extends PureComponent<Props, State> {
     this.setState({
       startX: startX + delta,
       endX: endX + delta,
-      slideMoveStartX: e.pageX,
+      slideMoveStartX,
     });
   }
 
@@ -510,8 +536,8 @@ export class Brush extends PureComponent<Props, State> {
         className="recharts-brush-traveller"
         onMouseEnter={this.handleEnterSlideOrTraveller}
         onMouseLeave={this.handleLeaveSlideOrTraveller}
-        onMouseDown={this.travellerDragStartHandlers[id]}
-        onTouchStart={this.travellerDragStartHandlers[id]}
+        onMouseDown={nativeEvent => this.travellerDragStartHandlers[id](nativeEvent)}
+        onTouchStart={nativeEvent => this.travellerDragStartHandlers[id](nativeEvent)}
         onKeyDown={e => {
           if (!['ArrowLeft', 'ArrowRight'].includes(e.key)) {
             return;
@@ -543,8 +569,8 @@ export class Brush extends PureComponent<Props, State> {
         className="recharts-brush-slide"
         onMouseEnter={this.handleEnterSlideOrTraveller}
         onMouseLeave={this.handleLeaveSlideOrTraveller}
-        onMouseDown={this.handleSlideDragStart}
-        onTouchStart={this.handleSlideDragStart}
+        onMouseDown={nativeEvent => this.handleSlideDragStart(nativeEvent)}
+        onTouchStart={nativeEvent => this.handleSlideDragStart(nativeEvent)}
         style={{ cursor: 'move' }}
         stroke="none"
         fill={stroke}
@@ -615,7 +641,7 @@ export class Brush extends PureComponent<Props, State> {
       <Layer
         className={layerClass}
         onMouseLeave={this.handleLeaveWrapper}
-        onTouchMove={this.handleTouchMove}
+        onTouchMove={nativeEvent => this.handleTouchMove(nativeEvent)}
         style={style}
       >
         {this.renderBackground()}
