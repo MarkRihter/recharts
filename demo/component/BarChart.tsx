@@ -573,6 +573,7 @@ export default class Demo extends Component<any, any> {
             <Tooltip />
             <Bar dataKey="uv" fill="#ff7300" maxBarSize={20} label radius={[10, 10, 10, 10]} />
             <Bar dataKey="pv" fill="#387908" />
+            <Brush height={30} />
           </BarChart>
         </div>
 
@@ -591,6 +592,7 @@ export default class Demo extends Component<any, any> {
             <Bar dataKey="pv" fill="#387908">
               <LabelList position="right" />
             </Bar>
+            <Brush height={8} />
           </BarChart>
         </div>
 
@@ -616,6 +618,7 @@ export default class Demo extends Component<any, any> {
             <Bar dataKey="bmk" fill="#183a91">
               <LabelList position="insideRight" fill="#ffffff" />
             </Bar>
+            <Brush />
           </BarChart>
         </div>
 
