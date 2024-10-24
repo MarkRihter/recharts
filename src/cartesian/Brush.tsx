@@ -11,7 +11,7 @@ import { Text } from '../component/Text';
 import { getValueByDataKey } from '../util/ChartUtils';
 import { isNumber } from '../util/DataUtils';
 import { generatePrefixStyle } from '../util/CssPrefixUtils';
-import { Padding, DataKey } from '../util/types';
+import { Padding, DataKey, LayoutType } from '../util/types';
 import { filterProps } from '../util/ReactUtils';
 
 type BrushTravellerType = ReactElement<SVGElement> | ((props: any) => ReactElement<SVGElement>);
@@ -51,21 +51,30 @@ interface BrushProps extends InternalBrushProps {
   onDragEnd?: (newIndex: BrushStartEndIndex) => void;
   leaveTimeOut?: number;
   alwaysShowText?: boolean;
+
+  layout?: LayoutType;
+
+  containerWidth?: number;
+  containerHeight?: number;
 }
 
 export type Props = Omit<SVGProps<SVGElement>, 'onChange'> & BrushProps;
 
-type BrushTravellerId = 'startX' | 'endX';
+type BrushTravellerId = 'startX' | 'endX' | 'startY' | 'endY';
 
 interface State {
   isTravellerMoving?: boolean;
   isTravellerFocused?: boolean;
   isSlideMoving?: boolean;
   startX?: number;
+  startY?: number;
   endX?: number;
+  endY?: number;
   slideMoveStartX?: number;
+  slideMoveStartY?: number;
   movingTravellerId?: BrushTravellerId;
   isTextActive?: boolean;
+  brushMoveStartY?: number;
   brushMoveStartX?: number;
 
   scale?: ScalePoint<number>;
@@ -74,6 +83,7 @@ interface State {
   prevData?: any[];
   prevWidth?: number;
   prevX?: number;
+  prevY?: number;
   prevTravellerWidth?: number;
   prevUpdateId?: string | number;
 }
@@ -83,24 +93,38 @@ const createScale = ({
   startIndex,
   endIndex,
   x,
+  y,
   width,
   travellerWidth,
+  layout,
+  height,
+  containerHeight,
 }: {
   data?: any[];
   startIndex?: number;
   endIndex?: number;
   x?: number;
+  y?: number;
   width?: number;
+  height?: number;
   travellerWidth?: number;
+  layout?: LayoutType;
+  containerHeight?: number;
 }) => {
   if (!data || !data.length) {
     return {};
   }
 
+  const isVertical = layout === 'vertical';
+
+  const rangeByLayout = isVertical
+    ? [y - containerHeight + height * 2, y + height / 2 - travellerWidth]
+    : [x, x + width - travellerWidth];
+
   const len = data.length;
-  const scale = scalePoint<number>()
-    .domain(range(0, len))
-    .range([x, x + width - travellerWidth]);
+
+  const scale = scalePoint<number>().domain(range(0, len)).range(rangeByLayout);
+
   const scaleValues = scale.domain().map(entry => scale(entry));
 
   return {
@@ -110,6 +134,8 @@ const createScale = ({
     isTravellerFocused: false,
     startX: scale(startIndex),
     endX: scale(endIndex),
+    startY: scale(startIndex),
+    endY: scale(endIndex),
     scale,
     scaleValues,
   };
@@ -120,6 +146,10 @@ const isTouch = (e: TouchEvent<SVGElement> | React.MouseEvent<SVGElement>): e is
 
 export class Brush extends PureComponent<Props, State> {
   static displayName = 'Brush';
+
+  private isVertical = false;
+
+  private verticalOffset = 20;
 
   static defaultProps = {
     height: 40,
@@ -135,9 +165,13 @@ export class Brush extends PureComponent<Props, State> {
   constructor(props: Props) {
     super(props);
 
+    this.isVertical = props.layout === 'vertical';
+
     this.travellerDragStartHandlers = {
       startX: this.handleTravellerDragStart.bind(this, 'startX'),
       endX: this.handleTravellerDragStart.bind(this, 'endX'),
+      startY: this.handleTravellerDragStart.bind(this, 'startY'),
+      endY: this.handleTravellerDragStart.bind(this, 'endY'),
     };
 
     this.state = {};
@@ -151,7 +185,19 @@ export class Brush extends PureComponent<Props, State> {
   >;
 
   static renderDefaultTraveller(props: any) {
-    const { x, y, width, height, stroke } = props;
+    const { x, y, width, height, stroke, layout } = props;
+
+    if (layout === 'vertical') {
+      const lineX = Math.floor(x + width / 2) - 1;
+
+      return (
+        <>
+          <rect x={x} y={y} width={width} height={height} fill={stroke} stroke="none" />
+          <line x1={lineX} y1={y + 1} x2={lineX} y2={y + height - 1} fill="none" stroke="#fff" />
+          <line x1={lineX + 2} y1={y + 1} x2={lineX + 2} y2={y + height - 1} fill="none" stroke="#fff" />
+        </>
+      );
+    }
     const lineY = Math.floor(y + height / 2) - 1;
 
     return (
@@ -178,7 +224,9 @@ export class Brush extends PureComponent<Props, State> {
   }
 
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
-    const { data, width, x, travellerWidth, updateId, startIndex, endIndex } = nextProps;
+    const { data, width, x, y, layout, travellerWidth, updateId, startIndex, endIndex, height, containerHeight } =
+      nextProps;
+    const isVertical = layout === 'vertical';
 
     if (data !== prevState.prevData || updateId !== prevState.prevUpdateId) {
       return {
@@ -188,7 +236,18 @@ export class Brush extends PureComponent<Props, State> {
         prevX: x,
         prevWidth: width,
         ...(data && data.length
-          ? createScale({ data, width, x, travellerWidth, startIndex, endIndex })
+          ? createScale({
+              data,
+              width,
+              x,
+              travellerWidth,
+              startIndex,
+              endIndex,
+              y,
+              layout,
+              height,
+              containerHeight,
+            })
           : { scale: null, scaleValues: null }),
       };
     }
@@ -196,7 +255,11 @@ export class Brush extends PureComponent<Props, State> {
       prevState.scale &&
       (width !== prevState.prevWidth || x !== prevState.prevX || travellerWidth !== prevState.prevTravellerWidth)
     ) {
-      prevState.scale.range([x, x + width - travellerWidth]);
+      const rangeByLayout = isVertical
+        ? [y - containerHeight + height * 2, y + height / 2 - travellerWidth]
+        : [x, x + width - travellerWidth];
+
+      prevState.scale.range(rangeByLayout);
 
       const scaleValues = prevState.scale.domain().map(entry => prevState.scale(entry));
 
@@ -208,6 +271,8 @@ export class Brush extends PureComponent<Props, State> {
         prevWidth: width,
         startX: prevState.scale(nextProps.startIndex),
         endX: prevState.scale(nextProps.endIndex),
+        startY: prevState.scale(nextProps.startIndex),
+        endY: prevState.scale(nextProps.endIndex),
         scaleValues,
       };
     }
@@ -233,7 +298,7 @@ export class Brush extends PureComponent<Props, State> {
   }
 
   handleReceiveWheelEvent = (e?: WheelEvent) => {
-    const delta = (e.shiftKey ? e.deltaY : e.deltaX) / 10;
+    const delta = e.deltaY / 10;
 
     if (delta !== 0) e.preventDefault();
 
@@ -258,14 +323,24 @@ export class Brush extends PureComponent<Props, State> {
     return x >= valueRange[end] ? end : start;
   }
 
-  getIndex({ startX, endX }: { startX: number; endX: number }) {
+  getIndex({ startX, endX, startY, endY }: { startX?: number; endX?: number; startY?: number; endY?: number }) {
     const { scaleValues } = this.state;
     const { gap, data } = this.props;
     const lastIndex = data.length - 1;
-    const min = Math.min(startX, endX);
-    const max = Math.max(startX, endX);
+
+    let min, max;
+
+    if (this.isVertical) {
+      min = Math.min(startY, endY);
+      max = Math.max(startY, endY);
+    } else {
+      min = Math.min(startX, endX);
+      max = Math.max(startX, endX);
+    }
+
     const minIndex = Brush.getIndexInRange(scaleValues, min);
     const maxIndex = Brush.getIndexInRange(scaleValues, max);
+
     return {
       startIndex: minIndex - (minIndex % gap),
       endIndex: maxIndex === lastIndex ? lastIndex : maxIndex - (maxIndex % gap),
@@ -354,42 +429,71 @@ export class Brush extends PureComponent<Props, State> {
       isTravellerMoving: false,
       isSlideMoving: true,
       slideMoveStartX: event.pageX,
+      slideMoveStartY: event.pageY,
     });
 
     this.attachDragEndListener();
   };
 
   handleSlideDrag(e: React.Touch | React.MouseEvent<SVGGElement> | MouseEvent) {
-    const { slideMoveStartX } = this.state;
-    const delta = e.pageX - slideMoveStartX;
+    const { slideMoveStartX, slideMoveStartY } = this.state;
+    const { layout } = this.props;
+    const isVertical = layout === 'vertical';
 
-    this.onSliderPositionChange(delta, e.pageX);
+    const deltaForVertical = e.pageY - slideMoveStartY;
+    const deltaForHorizontal = e.pageX - slideMoveStartX;
+
+    this.onSliderPositionChange(isVertical ? deltaForVertical : deltaForHorizontal, isVertical ? e.pageY : e.pageX);
   }
 
-  onSliderPositionChange(sliderDelta: number, slideMoveStartX: number) {
+  onSliderPositionChange(sliderDelta: number, slideMoveStartCoord: number) {
     let delta = sliderDelta;
-    const { startX, endX } = this.state;
-    const { x, width, travellerWidth, startIndex, endIndex, onChange } = this.props;
+    const { startX, endX, startY, endY } = this.state;
+    const { x, y, width, height, travellerWidth, startIndex, endIndex, onChange, containerHeight } = this.props;
 
-    if (delta > 0) {
-      delta = Math.min(delta, x + width - travellerWidth - endX, x + width - travellerWidth - startX);
-    } else if (delta < 0) {
-      delta = Math.max(delta, x - startX, x - endX);
+    if (this.isVertical) {
+      if (delta > 0) {
+        delta = Math.min(delta, y - travellerWidth + height / 2 - endY, y + height - travellerWidth - startY);
+      } else if (delta < 0) {
+        delta = Math.max(delta, y - containerHeight + height * 2 - startY, y - containerHeight - height - endY);
+      }
+
+      const newIndex = this.getIndex({
+        startY: startY + delta,
+        endY: endY + delta,
+      });
+
+      if ((newIndex.startIndex !== startIndex || newIndex.endIndex !== endIndex) && onChange) {
+        onChange(newIndex);
+      }
+
+      this.setState({
+        startY: startY + delta,
+        endY: endY + delta,
+        slideMoveStartY: slideMoveStartCoord,
+      });
+    } else {
+      if (delta > 0) {
+        delta = Math.min(delta, x + width - travellerWidth - endX, x + width - travellerWidth - startX);
+      } else if (delta < 0) {
+        delta = Math.max(delta, x - startX, x - endX);
+      }
+
+      const newIndex = this.getIndex({
+        startX: startX + delta,
+        endX: endX + delta,
+      });
+
+      if ((newIndex.startIndex !== startIndex || newIndex.endIndex !== endIndex) && onChange) {
+        onChange(newIndex);
+      }
+
+      this.setState({
+        startX: startX + delta,
+        endX: endX + delta,
+        slideMoveStartX: slideMoveStartCoord,
+      });
     }
-    const newIndex = this.getIndex({
-      startX: startX + delta,
-      endX: endX + delta,
-    });
-
-    if ((newIndex.startIndex !== startIndex || newIndex.endIndex !== endIndex) && onChange) {
-      onChange(newIndex);
-    }
-
-    this.setState({
-      startX: startX + delta,
-      endX: endX + delta,
-      slideMoveStartX,
-    });
   }
 
   handleTravellerDragStart(id: BrushTravellerId, e: React.MouseEvent<SVGGElement> | TouchEvent<SVGGElement>) {
@@ -400,36 +504,68 @@ export class Brush extends PureComponent<Props, State> {
       isTravellerMoving: true,
       movingTravellerId: id,
       brushMoveStartX: event.pageX,
+      brushMoveStartY: event.pageY,
     });
 
     this.attachDragEndListener();
   }
 
   handleTravellerMove(e: React.Touch | React.MouseEvent<SVGGElement> | MouseEvent) {
-    const { brushMoveStartX, movingTravellerId, endX, startX } = this.state;
+    const { brushMoveStartX, movingTravellerId, endX, startX, endY, startY, brushMoveStartY } = this.state;
     const prevValue = this.state[movingTravellerId];
 
-    const { x, width, travellerWidth, onChange, gap, data } = this.props;
-    const params = { startX: this.state.startX, endX: this.state.endX };
+    const { x, y, width, travellerWidth, onChange, gap, data, height, containerHeight } = this.props;
 
-    let delta = e.pageX - brushMoveStartX;
-    if (delta > 0) {
-      delta = Math.min(delta, x + width - travellerWidth - prevValue);
-    } else if (delta < 0) {
-      delta = Math.max(delta, x - prevValue);
+    const params = {
+      startY: this.state.startY,
+      endY: this.state.endY,
+      startX: this.state.startX,
+      endX: this.state.endX,
+    };
+
+    let delta;
+
+    if (this.isVertical) {
+      delta = e.pageY - brushMoveStartY;
+
+      if (delta > 0) {
+        delta = Math.min(delta, y - travellerWidth + height / 2 - prevValue);
+      } else if (delta < 0) {
+        delta = Math.max(delta, y - containerHeight + height * 2 - prevValue);
+      }
+
+      params[movingTravellerId] = prevValue + delta;
+    } else {
+      delta = e.pageX - brushMoveStartX;
+
+      if (delta > 0) {
+        delta = Math.min(delta, x + width - travellerWidth - prevValue);
+      } else if (delta < 0) {
+        delta = Math.max(delta, x - prevValue);
+      }
+
+      params[movingTravellerId] = prevValue + delta;
     }
-
-    params[movingTravellerId] = prevValue + delta;
 
     const newIndex = this.getIndex(params);
     const { startIndex, endIndex } = newIndex;
+
     const isFullGap = () => {
       const lastIndex = data.length - 1;
+      const isStartX = movingTravellerId === 'startX';
+      const isEndX = movingTravellerId === 'endX';
+      const isStartY = movingTravellerId === 'startY';
+      const isEndY = movingTravellerId === 'endY';
+
       if (
-        (movingTravellerId === 'startX' && (endX > startX ? startIndex % gap === 0 : endIndex % gap === 0)) ||
+        (isStartX && (endX > startX ? startIndex % gap === 0 : endIndex % gap === 0)) ||
         (endX < startX && endIndex === lastIndex) ||
-        (movingTravellerId === 'endX' && (endX > startX ? endIndex % gap === 0 : startIndex % gap === 0)) ||
-        (endX > startX && endIndex === lastIndex)
+        (isEndX && (endX > startX ? endIndex % gap === 0 : startIndex % gap === 0)) ||
+        (endX > startX && endIndex === lastIndex) ||
+        (isStartY && (endY > startY ? startIndex % gap === 0 : endIndex % gap === 0)) ||
+        (endY < startY && endIndex === lastIndex) ||
+        (isEndY && (endY > startY ? endIndex % gap === 0 : startIndex % gap === 0)) ||
+        (endY > startY && endIndex === lastIndex)
       ) {
         return true;
       }
@@ -440,6 +576,7 @@ export class Brush extends PureComponent<Props, State> {
       {
         [movingTravellerId]: prevValue + delta,
         brushMoveStartX: e.pageX,
+        brushMoveStartY: e.pageY,
       },
       () => {
         if (onChange) {
@@ -490,39 +627,59 @@ export class Brush extends PureComponent<Props, State> {
   }
 
   renderBackground() {
-    const { x, y, width, height, fill, stroke } = this.props;
+    const { x, y, height, containerHeight, containerWidth, fill, stroke, width, travellerWidth } = this.props;
 
-    return <rect stroke={stroke} fill={fill} x={x} y={y} width={width} height={height} />;
+    const verticalY = Math.min(y - containerHeight + height * 2, y + height / 2 - travellerWidth) - height;
+
+    return (
+      <rect
+        stroke={stroke}
+        fill={fill}
+        x={this.isVertical ? containerWidth + this.verticalOffset : x}
+        y={this.isVertical ? verticalY : y}
+        width={this.isVertical ? height : width}
+        height={this.isVertical ? containerHeight - height * 1.5 : height}
+      />
+    );
   }
 
   renderPanorama() {
-    const { x, y, width, height, data, children, padding } = this.props;
+    const { x, y, width, height, data, children, padding, layout, containerWidth, containerHeight, travellerWidth } =
+      this.props;
+
     const chartElement = Children.only(children);
+
+    const verticalY = Math.min(y - containerHeight + height * 2, y + height / 2 - travellerWidth) - height;
 
     if (!chartElement) {
       return null;
     }
 
     return React.cloneElement(chartElement, {
-      x,
-      y,
-      width,
-      height,
+      x: this.isVertical ? containerWidth + this.verticalOffset : x,
+      y: this.isVertical ? verticalY : y,
+      width: this.isVertical ? height : width,
+      height: this.isVertical ? containerHeight - height * 1.5 : height,
       margin: padding,
       compact: true,
       data,
+      layout,
     });
   }
 
   renderTravellerLayer(travellerX: number, id: BrushTravellerId) {
-    const { y, travellerWidth, height, traveller, ariaLabel, data, startIndex, endIndex } = this.props;
+    const { y, travellerWidth, height, traveller, ariaLabel, data, startIndex, endIndex, layout, containerWidth } =
+      this.props;
+
     const x = Math.max(travellerX, this.props.x);
+
     const travellerProps = {
       ...filterProps(this.props, false),
-      x,
-      y,
-      width: travellerWidth,
-      height,
+      x: this.isVertical ? containerWidth + this.verticalOffset : x,
+      y: this.isVertical ? travellerX - height : y,
+      width: this.isVertical ? height : travellerWidth,
+      height: this.isVertical ? travellerWidth : height,
+      layout,
     };
 
     const ariaLabelBrush = ariaLabel || `Min value: ${data[startIndex]?.name}, Max value: ${data[endIndex]?.name}`;
@@ -552,7 +709,7 @@ export class Brush extends PureComponent<Props, State> {
         onBlur={() => {
           this.setState({ isTravellerFocused: false });
         }}
-        style={{ cursor: 'col-resize' }}
+        style={{ cursor: this.isVertical ? 'row-resize' : 'col-resize' }}
       >
         {Brush.renderTraveller(traveller, travellerProps)}
       </Layer>
@@ -560,7 +717,7 @@ export class Brush extends PureComponent<Props, State> {
   }
 
   renderSlide(startX: number, endX: number) {
-    const { y, height, stroke, travellerWidth } = this.props;
+    const { y, height, stroke, travellerWidth, containerWidth } = this.props;
     const x = Math.min(startX, endX) + travellerWidth;
     const width = Math.max(Math.abs(endX - startX) - travellerWidth, 0);
 
@@ -575,10 +732,10 @@ export class Brush extends PureComponent<Props, State> {
         stroke="none"
         fill={stroke}
         fillOpacity={0.2}
-        x={x}
-        y={y}
-        width={width}
-        height={height}
+        x={this.isVertical ? containerWidth + this.verticalOffset : x}
+        y={this.isVertical ? x - height : y}
+        width={this.isVertical ? height : width}
+        height={this.isVertical ? width : height}
       />
     );
   }
@@ -592,6 +749,7 @@ export class Brush extends PureComponent<Props, State> {
       fill: stroke,
     };
 
+    if (this.isVertical) return null;
     return (
       <Layer className="recharts-brush-texts">
         <Text
@@ -618,7 +776,8 @@ export class Brush extends PureComponent<Props, State> {
 
   render() {
     const { data, className, children, x, y, width, height, alwaysShowText } = this.props;
-    const { startX, endX, isTextActive, isSlideMoving, isTravellerMoving, isTravellerFocused } = this.state;
+    const { startX, endX, startY, endY, isTextActive, isSlideMoving, isTravellerMoving, isTravellerFocused } =
+      this.state;
 
     if (
       !data ||
@@ -646,9 +805,9 @@ export class Brush extends PureComponent<Props, State> {
       >
         {this.renderBackground()}
         {isPanoramic && this.renderPanorama()}
-        {this.renderSlide(startX, endX)}
-        {this.renderTravellerLayer(startX, 'startX')}
-        {this.renderTravellerLayer(endX, 'endX')}
+        {this.renderSlide(this.isVertical ? startY : startX, this.isVertical ? endY : endX)}
+        {this.renderTravellerLayer(this.isVertical ? startY : startX, this.isVertical ? 'startY' : 'startX')}
+        {this.renderTravellerLayer(this.isVertical ? endY : endX, this.isVertical ? 'endY' : 'endX')}
         {(isTextActive || isSlideMoving || isTravellerMoving || isTravellerFocused || alwaysShowText) &&
           this.renderText()}
       </Layer>

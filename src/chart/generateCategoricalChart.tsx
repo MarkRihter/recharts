@@ -1953,6 +1953,8 @@ export const generateCategoricalChart = ({
         endIndex: dataEndIndex,
         updateId: `brush-${updateId}`,
         container: this.container,
+        containerWidth: this.props.width,
+        containerHeight: this.props.height,
         layout,
       });
     };
@@ -2337,6 +2339,8 @@ export const generateCategoricalChart = ({
 
       const events = this.parseEventsOfWrapper();
 
+      const hasVerticalBrush = this.props.layout === 'vertical' && !!this.renderMap.Brush.handler;
+
       return (
         <ChartLayoutContextProvider
           state={this.state}
@@ -2352,7 +2356,17 @@ export const generateCategoricalChart = ({
               this.container = node;
             }}
           >
-            <Surface {...attrs} width={width} height={height} title={title} desc={desc} style={FULL_WIDTH_AND_HEIGHT}>
+            <Surface
+              {...attrs}
+              width={width}
+              height={height}
+              title={title}
+              desc={desc}
+              style={{
+                ...(hasVerticalBrush ? { overflow: 'visible', paddingRight: '40px' } : undefined),
+                ...FULL_WIDTH_AND_HEIGHT,
+              }}
+            >
               {this.renderClipPath()}
               {renderByOrder(children, this.renderMap)}
             </Surface>
